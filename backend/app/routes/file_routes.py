@@ -4,6 +4,7 @@ import pypdf
 import docx
 import io
 from bson import ObjectId
+from datetime import datetime
 
 from app.auth import get_current_user
 from app.database import get_db
@@ -57,6 +58,7 @@ async def upload_file(
         "file_size": len(text_content),
         "content_text": text_content,
         "vectorized": False,
+        "uploaded_at": datetime.utcnow(),  # Added this line
     }
 
     result = await db.files.insert_one(file_doc)
@@ -93,7 +95,7 @@ async def get_files(
             "filename": f["filename"],
             "file_type": f["file_type"],
             "file_size": f["file_size"],
-            "uploaded_at": f["uploaded_at"].isoformat(),
+            "uploaded_at": f.get("uploaded_at", datetime.utcnow()).isoformat(),  # Added .get() with default
             "vectorized": f["vectorized"],
         }
         for f in files
