@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException
-from typing import List
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, HTTPException, Query
+from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime
 import json
@@ -9,6 +9,8 @@ from app.database import get_db
 from app.websocket_manager import manager
 from app.rag_engine import rag_engine
 from app.vector_store import vector_store
+from jose import jwt, JWTError
+from app.config import settings
 
 router = APIRouter(prefix="/api/chat", tags=["Chat"])
 
@@ -82,11 +84,45 @@ async def delete_session(
     return {"message": "Session deleted successfully"}
 
 
+async def verify_websocket_token(token: Optional[str], db) -> dict:
+    """Verify JWT token for WebSocket connections."""
+    if not token:
+        raise WebSocketDisconnect(code=1008, reason="No token provided")
+    
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise WebSocketDisconnect(code=1008, reason="Invalid token")
+    except JWTError:
+        raise WebSocketDisconnect(code=1008, reason="Invalid token")
+    
+    user = await db.users.find_one({"_id": user_id})
+    if user is None:
+        raise WebSocketDisconnect(code=1008, reason="User not found")
+    
+    return user
+
+
 @router.websocket("/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str, db = Depends(get_db)):
+async def websocket_endpoint(
+    websocket: WebSocket, 
+    session_id: str,
+    token: Optional[str] = Query(None),
+    db = Depends(get_db)
+):
     await manager.connect(websocket, session_id)
     
     try:
+        # Verify authentication
+        user = await verify_websocket_token(token, db)
+        
+        # Verify session belongs to user
+        session = await db.chat_sessions.find_one({"_id": ObjectId(session_id)})
+        if not session or session["user_id"] != str(user["_id"]):
+            await websocket.close(code=1008, reason="Unauthorized")
+            return
+        
         vector_store.load_index(session_id)
         
         while True:
