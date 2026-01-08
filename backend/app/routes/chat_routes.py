@@ -91,12 +91,20 @@ async def verify_websocket_token(token: Optional[str], db) -> dict:
     
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
             raise WebSocketDisconnect(code=1008, reason="Invalid token")
+        
+        # Convert string ID to ObjectId
+        try:
+            user_id = ObjectId(user_id_str)
+        except Exception:
+            raise WebSocketDisconnect(code=1008, reason="Invalid user ID format")
+            
     except JWTError:
         raise WebSocketDisconnect(code=1008, reason="Invalid token")
     
+    # Now look up with proper ObjectId
     user = await db.users.find_one({"_id": user_id})
     if user is None:
         raise WebSocketDisconnect(code=1008, reason="User not found")
