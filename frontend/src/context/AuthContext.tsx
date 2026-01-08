@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import api, { authAPI } from '../services/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -20,11 +20,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await authAPI.login(email, password);
-    localStorage.setItem('token', response.data.access_token);
-    setIsAuthenticated(true);
-  };
+ const login = async (email: string, password: string) => {
+  const response = await authAPI.login(email, password);
+  const token = response.data.access_token;
+  localStorage.setItem('token', token);
+  // Explicitly set headers for the current session to avoid race condition
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`; 
+  setIsAuthenticated(true);
+};
 
   const register = async (username: string, email: string, password: string) => {
     const response = await authAPI.register(username, email, password);
