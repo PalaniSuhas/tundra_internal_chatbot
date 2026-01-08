@@ -1,7 +1,6 @@
 from typing import List, Dict, AsyncGenerator
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from app.config import settings
 from app.vector_store import vector_store
 

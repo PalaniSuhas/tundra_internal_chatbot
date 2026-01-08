@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from typing import List
-import PyPDF2
+import pypdf
 import docx
 import io
 from bson import ObjectId
@@ -16,7 +16,7 @@ async def extract_text_from_file(file: UploadFile) -> str:
     content = await file.read()
 
     if file.filename.endswith(".pdf"):
-        pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+        pdf_reader = pypdf.PdfReader(io.BytesIO(content))
         text = ""
         for page in pdf_reader.pages:
             text += page.extract_text()

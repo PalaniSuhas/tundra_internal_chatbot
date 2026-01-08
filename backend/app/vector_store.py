@@ -3,7 +3,7 @@ import pickle
 from typing import List, Dict
 import faiss
 import numpy as np
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from app.config import settings
 

@@ -1,2 +1,4 @@
 .env
 venv
+vector_store/
+*pyc
