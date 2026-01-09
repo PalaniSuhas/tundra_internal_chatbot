@@ -115,7 +115,7 @@ export const Chat: React.FC = () => {
       console.log('Chat component unmounting, disconnecting WebSocket');
       wsService.disconnect();
     };
-  }, []); // Remove handleSelectSession from dependencies to prevent re-initialization
+  }, []);
 
   const handleSendMessage = (content: string) => {
     if (currentSessionId) {
@@ -126,6 +126,11 @@ export const Chat: React.FC = () => {
 
   const handlePromptClick = (prompt: string) => {
     handleSendMessage(prompt);
+  };
+
+  const handleResendMessage = (content: string) => {
+    // Resend the message - this will trigger a new response
+    handleSendMessage(content);
   };
 
   if (loading) {
@@ -182,7 +187,11 @@ export const Chat: React.FC = () => {
                 onPromptClick={handlePromptClick}
               />
             ) : (
-              <MessageList messages={messages} streamingContent={streamingContent} />
+              <MessageList 
+                messages={messages} 
+                streamingContent={streamingContent}
+                onResendMessage={handleResendMessage}
+              />
             )}
             <MessageInput 
               onSendMessage={handleSendMessage}
