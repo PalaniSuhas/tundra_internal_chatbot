@@ -1,3 +1,29 @@
+:root[data-theme="dark"] {
+  --primary-100: #1F3A5F;
+  --primary-200: #4d648d;
+  --primary-300: #acc2ef;
+  --accent-100: #3D5A80;
+  --accent-200: #cee8ff;
+  --text-100: #FFFFFF;
+  --text-200: #e0e0e0;
+  --bg-100: #0F1C2E;
+  --bg-200: #1f2b3e;
+  --bg-300: #374357;
+}
+
+:root[data-theme="light"] {
+  --primary-100: #d4eaf7;
+  --primary-200: #b6ccd8;
+  --primary-300: #3b3c3d;
+  --accent-100: #71c4ef;
+  --accent-200: #00668c;
+  --text-100: #1d1c1c;
+  --text-200: #313d44;
+  --bg-100: #fffefb;
+  --bg-200: #f5f4f1;
+  --bg-300: #cccbc8;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,6 +36,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-100);
+  color: var(--text-100);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 code {
@@ -18,4 +47,23 @@ code {
 
 #root {
   height: 100vh;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-200);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-300);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-200);
 }
