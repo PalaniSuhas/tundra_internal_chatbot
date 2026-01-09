@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fileAPI } from '../services/api';
 import { FileInfo } from '../types';
-import { Upload, File as FileIcon } from 'lucide-react';
+import { Upload, File as FileIcon, CheckCircle } from 'lucide-react';
 
 interface FileUploadProps {
   sessionId: string;
@@ -44,21 +44,39 @@ export const FileUpload: React.FC<FileUploadProps> = ({ sessionId }) => {
 
   return (
     <div style={{ 
-      padding: '1rem', 
-      borderBottom: '1px solid #e5e7eb',
-      background: '#f9fafb'
+      padding: '1.25rem', 
+      borderBottom: '1px solid var(--bg-300)',
+      background: 'var(--bg-200)'
     }}>
       <label style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        background: '#667eea',
+        padding: '0.625rem 1.25rem',
+        background: uploading 
+          ? 'var(--bg-300)' 
+          : `linear-gradient(135deg, var(--primary-200) 0%, var(--accent-100) 100%)`,
         color: 'white',
-        borderRadius: '6px',
+        borderRadius: '8px',
         cursor: uploading ? 'not-allowed' : 'pointer',
-        opacity: uploading ? 0.6 : 1
-      }}>
+        opacity: uploading ? 0.7 : 1,
+        transition: 'all 0.2s ease',
+        fontWeight: 600,
+        fontSize: '0.9rem'
+      }}
+      onMouseEnter={(e) => {
+        if (!uploading) {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.2)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!uploading) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
+        }
+      }}
+      >
         <Upload size={18} />
         {uploading ? 'Uploading...' : 'Upload File'}
         <input
@@ -71,31 +89,75 @@ export const FileUpload: React.FC<FileUploadProps> = ({ sessionId }) => {
       </label>
 
       {files.length > 0 && (
-        <div style={{ marginTop: '0.75rem' }}>
+        <div style={{ marginTop: '1rem' }}>
+          <div style={{ 
+            fontSize: '0.85rem', 
+            color: 'var(--text-200)', 
+            marginBottom: '0.5rem',
+            fontWeight: 600
+          }}>
+            Uploaded Files ({files.length})
+          </div>
           {files.map((file) => (
             <div
               key={file.id}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem',
-                background: 'white',
-                borderRadius: '4px',
+                gap: '0.75rem',
+                padding: '0.75rem',
+                background: 'var(--bg-100)',
+                borderRadius: '8px',
                 marginTop: '0.5rem',
-                fontSize: '0.85rem'
+                fontSize: '0.85rem',
+                border: '1px solid var(--bg-300)',
+                transition: 'border-color 0.2s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-100)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--bg-300)'}
             >
-              <FileIcon size={16} />
-              <span style={{ flex: 1 }}>{file.filename}</span>
-              {file.vectorized && (
-                <span style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#10b981',
-                  fontWeight: 500
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                background: `linear-gradient(135deg, var(--primary-200) 0%, var(--accent-100) 100%)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <FileIcon size={16} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ 
+                  color: 'var(--text-100)', 
+                  fontWeight: 500,
+                  marginBottom: '2px'
                 }}>
+                  {file.filename}
+                </div>
+                <div style={{ 
+                  color: 'var(--text-200)', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {(file.file_size / 1024).toFixed(1)} KB
+                </div>
+              </div>
+              {file.vectorized && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.25rem 0.625rem',
+                  background: 'rgba(34, 197, 94, 0.1)',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  color: '#22c55e',
+                  fontWeight: 600
+                }}>
+                  <CheckCircle size={14} />
                   Indexed
-                </span>
+                </div>
               )}
             </div>
           ))}

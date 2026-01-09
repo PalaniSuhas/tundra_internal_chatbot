@@ -7,7 +7,7 @@ interface MessageListProps {
   streamingContent: string;
 }
 
-// Enhanced markdown formatter
+// Enhanced markdown formatter with fixed bold rendering
 const formatText = (text: string): JSX.Element[] => {
   const lines = text.split('\n');
   const elements: JSX.Element[] = [];
@@ -26,26 +26,28 @@ const formatText = (text: string): JSX.Element[] => {
         inCodeBlock = false;
         elements.push(
           <div key={`code-${lineIndex}`} style={{
-            background: '#1e1e1e',
-            color: '#d4d4d4',
+            background: 'var(--bg-300)',
+            color: 'var(--text-100)',
             padding: '1rem',
-            borderRadius: '6px',
-            marginTop: '0.5rem',
-            marginBottom: '0.5rem',
+            borderRadius: '8px',
+            marginTop: '0.75rem',
+            marginBottom: '0.75rem',
             overflow: 'auto',
             fontFamily: 'monospace',
-            fontSize: '0.9rem'
+            fontSize: '0.9rem',
+            border: '1px solid var(--bg-300)'
           }}>
             {codeBlockLang && (
               <div style={{ 
-                color: '#888', 
+                color: 'var(--text-200)', 
                 fontSize: '0.8rem', 
-                marginBottom: '0.5rem' 
+                marginBottom: '0.5rem',
+                fontWeight: 600
               }}>
                 {codeBlockLang}
               </div>
             )}
-            <pre style={{ margin: 0 }}>
+            <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {codeBlockContent.join('\n')}
             </pre>
           </div>
@@ -61,125 +63,67 @@ const formatText = (text: string): JSX.Element[] => {
       return;
     }
 
-    // Process inline formatting - need to handle bold/italic carefully
-    let processedContent: (string | JSX.Element)[] = [line];
-    let keyCounter = 0;
-
-    // Process bold first: **text** or __text__
-    const processBold = (parts: (string | JSX.Element)[]): (string | JSX.Element)[] => {
+    // Process inline formatting
+    const processFormatting = (text: string): (string | JSX.Element)[] => {
       const result: (string | JSX.Element)[] = [];
-      
-      parts.forEach((part, partIdx) => {
-        if (typeof part === 'string') {
-          const boldRegex = /(\*\*|__)((?:(?!\1).)+)\1/g;
-          let lastIndex = 0;
-          let match;
-          
-          while ((match = boldRegex.exec(part)) !== null) {
-            if (match.index > lastIndex) {
-              result.push(part.slice(lastIndex, match.index));
-            }
-            result.push(
-              <strong key={`bold-${lineIndex}-${partIdx}-${keyCounter++}`}>
-                {match[2]}
-              </strong>
-            );
-            lastIndex = match.index + match[0].length;
-          }
-          
-          if (lastIndex < part.length) {
-            result.push(part.slice(lastIndex));
-          }
-        } else {
-          result.push(part);
+      let currentIndex = 0;
+      let keyCounter = 0;
+
+      // Combined regex for bold (**text**), italic (*text*), and inline code (`text`)
+      const formatRegex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)/g;
+      let match;
+
+      while ((match = formatRegex.exec(text)) !== null) {
+        // Add text before the match
+        if (match.index > currentIndex) {
+          result.push(text.slice(currentIndex, match.index));
         }
-      });
-      
-      return result;
+
+        if (match[1]) {
+          // Bold: **text**
+          result.push(
+            <strong key={`bold-${lineIndex}-${keyCounter++}`} style={{ fontWeight: 700, color: 'var(--text-100)' }}>
+              {match[2]}
+            </strong>
+          );
+        } else if (match[3]) {
+          // Italic: *text*
+          result.push(
+            <em key={`italic-${lineIndex}-${keyCounter++}`} style={{ fontStyle: 'italic' }}>
+              {match[4]}
+            </em>
+          );
+        } else if (match[5]) {
+          // Inline code: `text`
+          result.push(
+            <code 
+              key={`code-${lineIndex}-${keyCounter++}`}
+              style={{
+                background: 'var(--bg-300)',
+                padding: '0.2rem 0.4rem',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                fontSize: '0.9em',
+                color: 'var(--accent-200)'
+              }}
+            >
+              {match[6]}
+            </code>
+          );
+        }
+
+        currentIndex = match.index + match[0].length;
+      }
+
+      // Add remaining text
+      if (currentIndex < text.length) {
+        result.push(text.slice(currentIndex));
+      }
+
+      return result.length > 0 ? result : [text];
     };
 
-    // Process italic: *text* or _text_ (but not ** or __)
-    const processItalic = (parts: (string | JSX.Element)[]): (string | JSX.Element)[] => {
-      const result: (string | JSX.Element)[] = [];
-      
-      parts.forEach((part, partIdx) => {
-        if (typeof part === 'string') {
-          const italicRegex = /(?<!\*)\*(?!\*)([^*]+)\*(?!\*)|(?<!_)_(?!_)([^_]+)_(?!_)/g;
-          let lastIndex = 0;
-          let match;
-          
-          while ((match = italicRegex.exec(part)) !== null) {
-            if (match.index > lastIndex) {
-              result.push(part.slice(lastIndex, match.index));
-            }
-            result.push(
-              <em key={`italic-${lineIndex}-${partIdx}-${keyCounter++}`}>
-                {match[1] || match[2]}
-              </em>
-            );
-            lastIndex = match.index + match[0].length;
-          }
-          
-          if (lastIndex < part.length) {
-            result.push(part.slice(lastIndex));
-          }
-        } else {
-          result.push(part);
-        }
-      });
-      
-      return result;
-    };
-
-    // Process inline code: `code`
-    const processInlineCode = (parts: (string | JSX.Element)[]): (string | JSX.Element)[] => {
-      const result: (string | JSX.Element)[] = [];
-      
-      parts.forEach((part, partIdx) => {
-        if (typeof part === 'string') {
-          const codeRegex = /`([^`]+)`/g;
-          let lastIndex = 0;
-          let match;
-          
-          while ((match = codeRegex.exec(part)) !== null) {
-            if (match.index > lastIndex) {
-              result.push(part.slice(lastIndex, match.index));
-            }
-            result.push(
-              <code 
-                key={`code-${lineIndex}-${partIdx}-${keyCounter++}`}
-                style={{
-                  background: '#f3f4f6',
-                  padding: '0.125rem 0.375rem',
-                  borderRadius: '3px',
-                  fontFamily: 'monospace',
-                  fontSize: '0.9em',
-                  color: '#e53e3e'
-                }}
-              >
-                {match[1]}
-              </code>
-            );
-            lastIndex = match.index + match[0].length;
-          }
-          
-          if (lastIndex < part.length) {
-            result.push(part.slice(lastIndex));
-          }
-        } else {
-          result.push(part);
-        }
-      });
-      
-      return result;
-    };
-
-    // Apply formatting in order: bold -> italic -> inline code
-    processedContent = processBold(processedContent);
-    processedContent = processItalic(processedContent);
-    processedContent = processInlineCode(processedContent);
-
-    // Check for headers
+    // Headers
     if (line.trim().startsWith('#')) {
       const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
       if (headerMatch) {
@@ -190,45 +134,52 @@ const formatText = (text: string): JSX.Element[] => {
           <HeaderTag 
             key={`header-${lineIndex}`}
             style={{
-              marginTop: level === 1 ? '1rem' : '0.75rem',
+              marginTop: level === 1 ? '1.25rem' : '1rem',
               marginBottom: '0.5rem',
-              fontWeight: 600,
-              fontSize: level === 1 ? '1.5rem' : level === 2 ? '1.25rem' : '1.1rem'
+              fontWeight: 700,
+              fontSize: level === 1 ? '1.5rem' : level === 2 ? '1.25rem' : '1.1rem',
+              color: 'var(--text-100)'
             }}
           >
-            {text}
+            {processFormatting(text)}
           </HeaderTag>
         );
         return;
       }
     }
 
-    // Check for bullet points
+    // Bullet points
     if (line.trim().match(/^[-*+]\s+/)) {
       const text = line.trim().replace(/^[-*+]\s+/, '');
       elements.push(
         <div key={`bullet-${lineIndex}`} style={{ 
           marginLeft: '1.5rem',
-          marginBottom: '0.25rem'
+          marginBottom: '0.375rem',
+          color: 'var(--text-100)',
+          display: 'flex',
+          gap: '0.5rem'
         }}>
-          <span style={{ marginRight: '0.5rem' }}>•</span>
-          {text}
+          <span style={{ color: 'var(--accent-100)', flexShrink: 0 }}>•</span>
+          <span>{processFormatting(text)}</span>
         </div>
       );
       return;
     }
 
-    // Check for numbered lists
+    // Numbered lists
     if (line.trim().match(/^\d+\.\s+/)) {
       const match = line.trim().match(/^(\d+)\.\s+(.+)$/);
       if (match) {
         elements.push(
           <div key={`numbered-${lineIndex}`} style={{ 
             marginLeft: '1.5rem',
-            marginBottom: '0.25rem'
+            marginBottom: '0.375rem',
+            color: 'var(--text-100)',
+            display: 'flex',
+            gap: '0.5rem'
           }}>
-            <span style={{ marginRight: '0.5rem' }}>{match[1]}.</span>
-            {match[2]}
+            <span style={{ color: 'var(--accent-100)', fontWeight: 600, flexShrink: 0 }}>{match[1]}.</span>
+            <span>{processFormatting(match[2])}</span>
           </div>
         );
         return;
@@ -236,9 +187,13 @@ const formatText = (text: string): JSX.Element[] => {
     }
 
     // Regular line
+    const processedContent = processFormatting(line);
     if (processedContent.length > 0 || line.trim() === '') {
       elements.push(
-        <div key={`line-${lineIndex}`} style={{ marginBottom: line.trim() === '' ? '0.5rem' : '0' }}>
+        <div key={`line-${lineIndex}`} style={{ 
+          marginBottom: line.trim() === '' ? '0.5rem' : '0',
+          color: 'var(--text-100)'
+        }}>
           {processedContent.length > 0 ? processedContent : <br />}
         </div>
       );
@@ -259,8 +214,8 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, streamingCon
     <div style={{ 
       flex: 1, 
       overflowY: 'auto', 
-      padding: '1rem',
-      background: '#f9fafb'
+      padding: '1.5rem',
+      background: 'var(--bg-100)'
     }}>
       {messages.map((message) => (
         <div
@@ -269,46 +224,52 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, streamingCon
             display: 'flex',
             gap: '1rem',
             marginBottom: '1.5rem',
-            padding: '1rem',
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            padding: '1.25rem',
+            background: 'var(--bg-200)',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            border: '1px solid var(--bg-300)'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
-            background: message.role === 'user' ? '#667eea' : '#10b981',
+            background: message.role === 'user' 
+              ? `linear-gradient(135deg, var(--primary-200) 0%, var(--accent-100) 100%)` 
+              : `linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            {message.role === 'user' ? <User size={20} color="white" /> : <Bot size={20} color="white" />}
+            {message.role === 'user' ? <User size={22} color="white" /> : <Bot size={22} color="white" />}
           </div>
           
           <div style={{ flex: 1 }}>
             <div style={{ 
               fontWeight: 600, 
-              marginBottom: '0.5rem',
-              color: '#333'
+              marginBottom: '0.625rem',
+              color: 'var(--text-100)',
+              fontSize: '0.95rem'
             }}>
               {message.role === 'user' ? 'You' : 'Assistant'}
             </div>
             <div style={{ 
-              lineHeight: '1.6',
-              color: '#555'
+              lineHeight: '1.7',
+              color: 'var(--text-100)',
+              fontSize: '0.95rem'
             }}>
               {formatText(message.content)}
             </div>
             {message.file_references && message.file_references.length > 0 && (
               <div style={{ 
-                marginTop: '0.5rem',
+                marginTop: '0.75rem',
                 fontSize: '0.85rem',
-                color: '#999'
+                color: 'var(--text-200)',
+                fontStyle: 'italic'
               }}>
-                Referenced files: {message.file_references.join(', ')}
+                📎 Referenced: {message.file_references.join(', ')}
               </div>
             )}
           </div>
@@ -321,44 +282,59 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, streamingCon
             display: 'flex',
             gap: '1rem',
             marginBottom: '1.5rem',
-            padding: '1rem',
-            background: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            padding: '1.25rem',
+            background: 'var(--bg-200)',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            border: '1px solid var(--bg-300)'
           }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
-            background: '#10b981',
+            background: `linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%)`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <Bot size={20} color="white" />
+            <Bot size={22} color="white" />
           </div>
           
           <div style={{ flex: 1 }}>
             <div style={{ 
               fontWeight: 600, 
-              marginBottom: '0.5rem',
-              color: '#333'
+              marginBottom: '0.625rem',
+              color: 'var(--text-100)',
+              fontSize: '0.95rem'
             }}>
               Assistant
             </div>
             <div style={{ 
-              lineHeight: '1.6',
-              color: '#555'
+              lineHeight: '1.7',
+              color: 'var(--text-100)',
+              fontSize: '0.95rem'
             }}>
               {formatText(streamingContent)}
+              <span style={{ 
+                animation: 'pulse 1.5s infinite',
+                marginLeft: '2px',
+                color: 'var(--accent-100)'
+              }}>▊</span>
             </div>
           </div>
         </div>
       )}
       
       <div ref={messagesEndRef} />
+      
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
     </div>
   );
 };
