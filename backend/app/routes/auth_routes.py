@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.models import UserRegister, UserLogin, Token
-from app.auth import get_password_hash, verify_password, create_access_token
+from app.auth import get_password_hash, verify_password, create_access_token, get_current_user
 from app.database import get_db
 from bson import ObjectId
 
@@ -51,3 +51,12 @@ async def login(user: UserLogin, db = Depends(get_db)):
     access_token = create_access_token(data={"sub": str(db_user["_id"])})
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me")
+async def get_current_user_info(current_user = Depends(get_current_user)):
+    """Get current authenticated user information"""
+    return {
+        "username": current_user["username"],
+        "email": current_user["email"]
+    }

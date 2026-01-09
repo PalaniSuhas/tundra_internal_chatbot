@@ -95,7 +95,6 @@ async def verify_websocket_token(token: Optional[str], db) -> dict:
         if user_id_str is None:
             raise WebSocketDisconnect(code=1008, reason="Invalid token")
         
-        # Convert string ID to ObjectId
         try:
             user_id = ObjectId(user_id_str)
         except Exception:
@@ -104,7 +103,6 @@ async def verify_websocket_token(token: Optional[str], db) -> dict:
     except JWTError:
         raise WebSocketDisconnect(code=1008, reason="Invalid token")
     
-    # Now look up with proper ObjectId
     user = await db.users.find_one({"_id": user_id})
     if user is None:
         raise WebSocketDisconnect(code=1008, reason="User not found")
@@ -122,10 +120,8 @@ async def websocket_endpoint(
     await manager.connect(websocket, session_id)
     
     try:
-        # Verify authentication
         user = await verify_websocket_token(token, db)
         
-        # Verify session belongs to user
         session = await db.chat_sessions.find_one({"_id": ObjectId(session_id)})
         if not session or session["user_id"] != str(user["_id"]):
             await websocket.close(code=1008, reason="Unauthorized")
@@ -139,6 +135,7 @@ async def websocket_endpoint(
             
             user_message = message_data.get("content")
             
+            # Save user message
             user_msg = {
                 "session_id": session_id,
                 "role": "user",
@@ -148,10 +145,12 @@ async def websocket_endpoint(
             }
             await db.messages.insert_one(user_msg)
             
+            # Get chat history (excluding the just-added user message for context)
             chat_history = await db.messages.find(
                 {"session_id": session_id}
             ).sort("timestamp", 1).to_list(100)
             
+            # Prepare history for RAG (exclude the last message which is the current user query)
             history_list = [{
                 "role": msg["role"],
                 "content": msg["content"]
@@ -160,6 +159,7 @@ async def websocket_endpoint(
             files = await db.files.find({"session_id": session_id}).to_list(100)
             use_rag = len(files) > 0
             
+            # Stream response
             assistant_content = ""
             async for chunk in rag_engine.generate_response(
                 user_message,
@@ -173,6 +173,7 @@ async def websocket_endpoint(
                     "content": chunk
                 }), session_id)
             
+            # Save assistant message ONCE after streaming is complete
             assistant_msg = {
                 "session_id": session_id,
                 "role": "assistant",
@@ -182,10 +183,12 @@ async def websocket_endpoint(
             }
             await db.messages.insert_one(assistant_msg)
             
+            # Send end signal
             await manager.send_message(json.dumps({
                 "type": "end"
             }), session_id)
             
+            # Update chat title if this is the first exchange
             message_count = await db.messages.count_documents({"session_id": session_id})
             if message_count == 2:
                 title = await rag_engine.generate_chat_title(user_message)

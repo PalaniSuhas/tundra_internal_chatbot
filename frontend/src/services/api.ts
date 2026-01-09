@@ -13,7 +13,6 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
-    // Ensure we use the latest token from storage
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -28,7 +27,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token expired or invalid, clear it
       localStorage.removeItem('token');
-      window.location.reload();
+      localStorage.removeItem('user');
+      localStorage.removeItem('lastSessionId');
+      // Only reload if we're not on login page
+      if (window.location.pathname !== '/') {
+        window.location.reload();
+      }
     }
     return Promise.reject(error);
   }
