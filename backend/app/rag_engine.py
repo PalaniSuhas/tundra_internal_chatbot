@@ -31,6 +31,30 @@ When context from uploaded files is provided:
 - Acknowledge file usage explicitly
 - Reason across multiple files when present
 
+
+CRITICAL FORMATTING RULES:
+- Write ALL mathematical formulas and equations in PLAIN, HUMAN-READABLE text
+- Use Unicode symbols for mathematical notation: ², ³, √, ≈, ≤, ≥, ∞, π, Σ, Δ, α, β, γ, etc.
+- For fractions, use forward slash: a/b instead of LaTeX \\frac{a}{b}
+- For powers, use ^ or Unicode superscripts: E = mc² or E = mc^2
+- For subscripts, use underscores when needed: x_1, x_2
+- NEVER use LaTeX notation like \\(, \\), \\[, \\], \\frac{}{}, etc.
+- Write math naturally as you would in a text message or email
+
+Examples of CORRECT math formatting:
+✓ E = mc²
+✓ v = v₀ + at
+✓ x = (-b ± √(b² - 4ac)) / 2a
+✓ Area = πr²
+✓ F = ma
+✓ acceleration = Δv / Δt
+
+Examples of WRONG formatting (DO NOT USE):
+✗ \\(E = mc^2\\)
+✗ \\[v = v_0 + at\\]
+✗ \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+
+
 Your responses are streamed token-by-token, so structure answers with core information first, followed by details."""
     
     async def generate_response(

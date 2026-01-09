@@ -8,7 +8,7 @@ interface MessageListProps {
   onResendMessage?: (content: string) => void;
 }
 
-// Enhanced markdown formatter with line-by-line code streaming
+// Simple markdown formatter - no LaTeX, just clean readable text
 const formatText = (text: string, isStreaming: boolean = false): JSX.Element[] => {
   const lines = text.split('\n');
   const elements: JSX.Element[] = [];
@@ -41,7 +41,6 @@ const formatText = (text: string, isStreaming: boolean = false): JSX.Element[] =
 
     if (inCodeBlock) {
       codeBlockContent.push(line);
-      // For streaming code blocks, show partial content
       if (isStreaming && lineIndex === lines.length - 1) {
         elements.push(
           <CodeBlock 
@@ -61,6 +60,7 @@ const formatText = (text: string, isStreaming: boolean = false): JSX.Element[] =
       let currentIndex = 0;
       let keyCounter = 0;
 
+      // Match bold, italic, and inline code
       const formatRegex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)|(`(.+?)`)/g;
       let match;
 
@@ -70,18 +70,21 @@ const formatText = (text: string, isStreaming: boolean = false): JSX.Element[] =
         }
 
         if (match[1]) {
+          // Bold **text**
           result.push(
             <strong key={`bold-${lineIndex}-${keyCounter++}`} style={{ fontWeight: 700, color: 'var(--text-100)' }}>
               {match[2]}
             </strong>
           );
         } else if (match[3]) {
+          // Italic *text*
           result.push(
             <em key={`italic-${lineIndex}-${keyCounter++}`} style={{ fontStyle: 'italic' }}>
               {match[4]}
             </em>
           );
         } else if (match[5]) {
+          // Inline code `text`
           result.push(
             <code 
               key={`code-${lineIndex}-${keyCounter++}`}
